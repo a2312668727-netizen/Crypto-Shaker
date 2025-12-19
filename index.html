@@ -3,59 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>MOON SHAKER - 币圈摇摇乐</title>
-    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <title>Crypto Shaker</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
-        :root { --neon: #00ffff; --gold: #F7931A; }
-        body { margin: 0; background: #050505; color: white; font-family: -apple-system, sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .app-container { text-align: center; width: 100%; padding: 20px; }
+        :root { --neon-green: #00FF41; --dark-bg: #050505; }
+        body { margin: 0; background: var(--dark-bg); color: white; font-family: 'Courier New', Courier, monospace; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .app-container { text-align: center; width: 100%; max-width: 400px; padding: 20px; }
         
-        /* 轮盘转动动画 */
-        .wheel-box { 
-            width: 280px; height: 280px; margin: 0 auto; border-radius: 50%; 
-            border: 8px solid #111; position: relative; display: flex; 
-            align-items: center; justify-content: center; background: #111;
-            transition: transform 1.5s cubic-bezier(0.15, 0, 0.15, 1);
-            box-shadow: 0 0 40px rgba(0, 255, 255, 0.1);
+        .header { font-size: 32px; font-weight: 900; color: var(--neon-green); text-shadow: 0 0 15px var(--neon-green); margin-bottom: 30px; letter-spacing: 2px; }
+
+        /* 圆形轮盘卡片 */
+        .shaker-card {
+            width: 300px; height: 300px; margin: 0 auto; border-radius: 50%;
+            background: #111; border: 4px solid #333; position: relative;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            transition: transform 1.2s cubic-bezier(0.15, 0, 0.15, 1);
+            box-shadow: 0 0 30px rgba(0, 255, 65, 0.1);
         }
-        .inner-content { transition: opacity 0.3s; }
-        .crypto-logo { width: 80px; height: 80px; border-radius: 50%; background: #fff; margin-bottom: 10px; }
-        .symbol { font-size: 48px; font-weight: 900; margin: 0; }
+
+        .crypto-logo { width: 80px; height: 80px; border-radius: 50%; background: #fff; margin-bottom: 15px; border: 2px solid var(--neon-green); }
+        .symbol { font-size: 42px; font-weight: 900; color: var(--neon-green); margin: 0; text-shadow: 0 0 10px rgba(0, 255, 65, 0.5); }
         
-        /* 按钮和文字 */
-        .btn { 
-            margin-top: 50px; padding: 16px 40px; border-radius: 40px; 
-            font-size: 18px; font-weight: bold; border: none; cursor: pointer;
-            text-decoration: none; display: inline-block; transition: 0.3s;
+        /* 梭哈按钮 */
+        .trade-btn {
+            margin-top: 40px; padding: 15px 40px; border-radius: 50px;
+            background: var(--neon-green); color: #000; font-size: 18px;
+            font-weight: 900; text-decoration: none; display: inline-block;
+            box-shadow: 0 0 20px var(--neon-green); animation: pulse 1.5s infinite;
         }
-        .hint { margin-top: 30px; color: #444; font-size: 13px; letter-spacing: 1px; }
-        .flashing { animation: flash 1s infinite; }
-        @keyframes flash { 50% { opacity: 0.5; } }
+
+        .status-text { margin-top: 25px; font-size: 16px; color: #666; font-weight: bold; }
+        .shaking-msg { color: var(--neon-green); animation: blink 0.5s infinite; }
+
+        @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
+        @keyframes blink { 50% { opacity: 0; } }
     </style>
 </head>
 <body>
     <div id="app" class="app-container">
-        <h1 style="letter-spacing: 4px; font-size: 24px; color: #eee;">MOON SHAKER</h1>
+        <div class="header">CRYPTO SHAKER</div>
 
-        <div class="wheel-box" :style="{ transform: 'rotate(' + rotation + 'deg)', borderColor: activeColor, boxShadow: '0 0 50px ' + activeColor + '44' }">
-            <div class="inner-content" :style="{ opacity: isShaking ? 0.3 : 1 }">
-                <template v-if="result">
-                    <img :src="result.logo" class="crypto-logo">
-                    <p class="symbol" :style="{ color: activeColor }">{{ result.symbol }}</p>
-                    <p style="color: #888; font-size: 14px;">{{ result.tip }}</p>
-                </template>
-                <div v-else style="color: #333; font-size: 20px; font-weight: 900;">点击屏幕开启感应</div>
-            </div>
+        <div class="shaker-card" :style="{ transform: 'rotate(' + rotation + 'deg)', borderColor: activeColor, boxShadow: '0 0 40px ' + activeColor + '66' }">
+            <template v-if="result">
+                <img :src="result.logo" class="crypto-logo">
+                <p class="symbol" :style="{ color: activeColor }">{{ result.symbol }}</p>
+            </template>
+            <div v-else style="color: #444; font-weight: 900; font-size: 20px;">READY?</div>
         </div>
 
-        <div v-if="result && !isShaking">
-            <a :href="result.tradeUrl" class="btn" :style="{ background: activeColor, color: '#000' }">
-                去交易所买入 {{ result.symbol }}
+        <div style="min-height: 100px;">
+            <a v-if="result && !isShaking" :href="result.tradeUrl" class="trade-btn" :style="{ background: activeColor }">
+                立即梭哈 {{ result.symbol }}
             </a>
+            <div v-else-if="!result" @click="initAndShake" class="trade-btn" style="background: #333; color: #fff; cursor:pointer;">点我开启</div>
         </div>
 
-        <div class="hint" :class="{ flashing: isShaking }">
-            {{ isShaking ? '正在为您计算暴富标的...' : '摇动手机或点击屏幕测试' }}
+        <div class="status-text">
+            <span v-if="isShaking" class="shaking-msg">>>> 正在梭哈... <<<</span>
+            <span v-else>摇动手机或点击屏幕</span>
         </div>
     </div>
 
@@ -66,58 +71,71 @@
                 const rotation = ref(0);
                 const isShaking = ref(false);
                 const result = ref(null);
-                const activeColor = ref('#333');
+                const activeColor = ref('#00FF41');
 
-                const DATA = [
-                    { symbol: 'BTC', color: '#F7931A', tip: '数字黄金，YYDS', logo: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/BTC_USDT' },
-                    { symbol: 'ETH', color: '#627EEA', tip: '以太坊，公链之王', logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/ETH_USDT' },
-                    { symbol: 'SOL', color: '#14F195', tip: '速度之王，土狗天堂', logo: 'https://assets.coingecko.com/coins/images/4128/large/solana.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/SOL_USDT' },
-                    { symbol: 'PEPE', color: '#379237', tip: 'Meme 精神领袖', logo: 'https://assets.coingecko.com/coins/images/29850/large/pepe-token.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/PEPE_USDT' }
+                // 20个热门币种库
+                const CRYPTO_POOL = [
+                    { symbol: 'BTC', color: '#F7931A', logo: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/BTC_USDT' },
+                    { symbol: 'ETH', color: '#627EEA', logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/ETH_USDT' },
+                    { symbol: 'SOL', color: '#14F195', logo: 'https://assets.coingecko.com/coins/images/4128/large/solana.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/SOL_USDT' },
+                    { symbol: 'XRP', color: '#23292F', logo: 'https://assets.coingecko.com/coins/images/44/large/xrp.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/XRP_USDT' },
+                    { symbol: 'BNB', color: '#F3BA2F', logo: 'https://assets.coingecko.com/coins/images/825/large/binance-coin-logo.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/BNB_USDT' },
+                    { symbol: 'DOGE', color: '#C2A633', logo: 'https://assets.coingecko.com/coins/images/5/large/dogecoin.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/DOGE_USDT' },
+                    { symbol: 'PEPE', color: '#379237', logo: 'https://assets.coingecko.com/coins/images/29850/large/pepe-token.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/PEPE_USDT' },
+                    { symbol: 'SUI', color: '#6FBCF0', logo: 'https://assets.coingecko.com/coins/images/26375/large/sui_asset.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/SUI_USDT' },
+                    { symbol: 'NEAR', color: '#555555', logo: 'https://assets.coingecko.com/coins/images/10365/large/near.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/NEAR_USDT' },
+                    { symbol: 'LINK', color: '#2A5ADA', logo: 'https://assets.coingecko.com/coins/images/877/large/chainlink-new-logo.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/LINK_USDT' },
+                    { symbol: 'AVAX', color: '#E84142', logo: 'https://assets.coingecko.com/coins/images/12559/large/Avalanche_Circle_RedWhite_Trans.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/AVAX_USDT' },
+                    { symbol: 'WLD', color: '#FFFFFF', logo: 'https://assets.coingecko.com/coins/images/31069/large/worldcoin.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/WLD_USDT' },
+                    { symbol: 'BONK', color: '#FFA500', logo: 'https://assets.coingecko.com/coins/images/28600/large/bonk.jpg', tradeUrl: 'https://www.binance.com/zh-CN/trade/BONK_USDT' },
+                    { symbol: 'STX', color: '#5546FF', logo: 'https://assets.coingecko.com/coins/images/2069/large/Stacks_logo_full.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/STX_USDT' },
+                    { symbol: 'TIA', color: '#7B2BF9', logo: 'https://assets.coingecko.com/coins/images/31967/large/celestia.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/TIA_USDT' },
+                    { symbol: 'APT', color: '#2DD4BF', logo: 'https://assets.coingecko.com/coins/images/26455/large/aptos_round.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/APT_USDT' },
+                    { symbol: 'ORDI', color: '#FFFFFF', logo: 'https://assets.coingecko.com/coins/images/30306/large/ordi.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/ORDI_USDT' },
+                    { symbol: 'ARB', color: '#28A0F0', logo: 'https://assets.coingecko.com/coins/images/16547/large/photo_2023-03-29_21.47.00.jpeg', tradeUrl: 'https://www.binance.com/zh-CN/trade/ARB_USDT' },
+                    { symbol: 'OP', color: '#FF0420', logo: 'https://assets.coingecko.com/coins/images/25244/large/Optimism.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/OP_USDT' },
+                    { symbol: 'ADA', color: '#0033AD', logo: 'https://assets.coingecko.com/coins/images/975/large/cardano.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/ADA_USDT' }
                 ];
 
-                const luckyDraw = () => {
+                const startLuckyDraw = () => {
                     if (isShaking.value) return;
                     isShaking.value = true;
-                    rotation.value += 1080 + Math.random() * 360; // 旋转至少3圈
-                    
-                    let i = 0;
+                    rotation.value += 1440 + Math.random() * 360;
+
+                    let count = 0;
                     const interval = setInterval(() => {
-                        result.value = DATA[Math.floor(Math.random() * DATA.length)];
-                        activeColor.value = result.value.color;
-                        i++;
-                        if (i > 15) {
+                        const rand = CRYPTO_POOL[Math.floor(Math.random() * CRYPTO_POOL.length)];
+                        result.value = rand;
+                        activeColor.value = rand.color;
+                        count++;
+                        if (count > 15) {
                             clearInterval(interval);
                             isShaking.value = false;
                         }
                     }, 80);
                 };
 
-                // 核心：处理网页传感器权限
-                const initSensor = () => {
-                    if (typeof DeviceMotionEvent.requestPermission === 'function') {
-                        DeviceMotionEvent.requestPermission().then(permissionState => {
-                            if (permissionState === 'granted') {
-                                window.addEventListener('devicemotion', (e) => {
-                                    const acc = e.accelerationIncludingGravity;
-                                    if (Math.abs(acc.x) > 15 || Math.abs(acc.y) > 15) luckyDraw();
-                                });
-                            }
+                const initAndShake = () => {
+                    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+                        DeviceMotionEvent.requestPermission().then(state => {
+                            if (state === 'granted') window.addEventListener('devicemotion', handleMotion);
                         });
                     } else {
-                        window.addEventListener('devicemotion', (e) => {
-                            const acc = e.accelerationIncludingGravity;
-                            if (Math.abs(acc.x) > 15 || Math.abs(acc.y) > 15) luckyDraw();
-                        });
+                        window.addEventListener('devicemotion', handleMotion);
                     }
-                    luckyDraw(); // 第一次点击也触发一次
+                    startLuckyDraw();
                 };
 
-                return { rotation, isShaking, result, activeColor, initSensor };
+                const handleMotion = (e) => {
+                    const acc = e.accelerationIncludingGravity;
+                    if (Math.abs(acc.x) > 16 || Math.abs(acc.y) > 16) startLuckyDraw();
+                };
+
+                window.addEventListener('click', () => { if(!isShaking.value) initAndShake(); }, { once: false });
+
+                return { rotation, isShaking, result, activeColor, initAndShake };
             }
         }).mount('#app');
-        
-        // 监听点击开启感应（浏览器要求必须有用户交互才能用传感器）
-        window.onclick = () => { document.querySelector('#app').__vue_app__.config.globalProperties.initSensor; };
     </script>
 </body>
 </html>
