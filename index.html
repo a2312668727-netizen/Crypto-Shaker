@@ -8,59 +8,67 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <style>
         :root { --neon: #00FF41; }
-        body { margin: 0; background: #000; color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; height: 100vh; }
-        #canvas { position: absolute; top: 0; left: 0; z-index: 10; pointer-events: none; }
+        body { margin: 0; background: #000; color: white; font-family: 'Orbitron', sans-serif; overflow: hidden; height: 100vh; position: relative; }
         
-        .app { position: relative; z-index: 5; text-align: center; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .title { font-size: 32px; letter-spacing: 4px; margin-bottom: 30px; transition: 0.3s; }
+        /* 粒子画布，置于最顶层 */
+        #canvas { position: absolute; top: 0; left: 0; z-index: 999; pointer-events: none; }
         
-        /* 震动动画 */
-        .shake-anim { animation: shake 0.1s infinite; }
-        @keyframes shake { 0% { transform: translate(2px, 2px); } 50% { transform: translate(-2px, -2px); } 100% { transform: translate(0,0); } }
-
-        .wheel-wrap { position: relative; width: 300px; height: 300px; }
-        .spin-border { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 6px solid #111; transition: transform 2.5s cubic-bezier(0.1, 0, 0.1, 1); }
+        .app { position: relative; z-index: 10; text-align: center; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         
-        /* 霓虹呼吸灯 */
-        .glow { box-shadow: 0 0 60px var(--neon); }
+        /* 抽奖时的屏幕抖动 */
+        .shaking-screen { animation: screen-shake 0.1s infinite; }
+        @keyframes screen-shake { 0% { transform: translate(1px, 1px); } 50% { transform: translate(-1px, -1px); } 100% { transform: translate(0,0); } }
 
-        .inner-content { position: absolute; top: 10px; left: 10px; width: 280px; height: 280px; border-radius: 50%; background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 6; }
-        .coin-img { width: 85px; height: 85px; border-radius: 50%; border: 2px solid var(--neon); margin-bottom: 10px; }
-        .coin-name { font-size: 48px; margin: 0; text-shadow: 0 0 10px var(--neon); }
+        .wheel-wrap { position: relative; width: 320px; height: 320px; display: flex; align-items: center; justify-content: center; }
+        .spin-border { position: absolute; width: 100%; height: 100%; border-radius: 50%; border: 6px solid #111; transition: transform 2.5s cubic-bezier(0.1, 0, 0.1, 1); box-sizing: border-box; }
+        
+        .inner-content { position: relative; width: 280px; height: 280px; border-radius: 50%; background: #0a0a0a; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 20; border: 1px solid rgba(255,255,255,0.1); }
+        .coin-img { width: 90px; height: 90px; border-radius: 50%; margin-bottom: 10px; background: #fff; box-shadow: 0 0 20px var(--neon); }
+        .coin-name { font-size: 55px; font-weight: 900; margin: 0; }
 
-        .btn { margin-top: 40px; padding: 18px 45px; border-radius: 50px; font-size: 18px; font-weight: 900; background: var(--neon); color: #000; border: none; box-shadow: 0 0 20px var(--neon); cursor: pointer; }
-        .shaking-msg { margin-top: 20px; color: var(--neon); animation: blink 0.3s infinite; font-size: 14px; }
-        @keyframes blink { 50% { opacity: 0; } }
+        .btn { margin-top: 50px; padding: 18px 50px; border-radius: 50px; font-size: 18px; font-weight: 900; color: #000; border: none; box-shadow: 0 0 30px var(--neon); cursor: pointer; transition: 0.2s; z-index: 100; }
+        .status-msg { margin-top: 25px; color: var(--neon); font-size: 16px; font-weight: bold; letter-spacing: 2px; }
+        .blink { animation: blink-anim 0.5s infinite; }
+        @keyframes blink-anim { 50% { opacity: 0; } }
     </style>
 </head>
-<body>
+<body @click="handleInteraction">
     <canvas id="canvas"></canvas>
-    <div id="app" class="app" :class="{'shake-anim': isShaking}" @click="start">
-        <h1 class="title" :style="{color: activeColor}">CRYPTO SHAKER</h1>
+    
+    <div id="app" class="app" :class="{'shaking-screen': isShaking}">
+        <h1 style="font-size: 32px; letter-spacing: 5px; margin-bottom: 30px;">CRYPTO SHAKER</h1>
 
-        <div class="wheel-wrap">
-            <div class="spin-border" :style="{ transform: 'rotate(' + deg + 'deg)', borderColor: activeColor, boxShadow: '0 0 40px ' + activeColor }"></div>
-            <div class="inner-content" :class="{glow: !isShaking && result}">
+        <div class="wheel-wrap" @click="start">
+            <div class="spin-border" :style="{ transform: 'rotate(' + deg + 'deg)', borderColor: activeColor, boxShadow: '0 0 60px ' + activeColor + '44' }"></div>
+            
+            <div class="inner-content">
                 <template v-if="result">
-                    <img :src="result.logo" class="coin-img">
+                    <img :src="result.logo" class="coin-img" :style="{borderColor: activeColor}">
                     <div class="coin-name" :style="{color: activeColor}">{{ result.symbol }}</div>
+                    <div style="font-size: 14px; color: #666; margin-top: 10px;">{{ result.tip }}</div>
                 </template>
-                <div v-else style="color:#222">READY?</div>
+                <div v-else style="color: #222; font-size: 24px;">CLICK START</div>
             </div>
         </div>
 
-        <div style="height: 100px;">
+        <div style="height: 120px;">
             <button v-if="result && !isShaking" class="btn" @click.stop="goTrade" :style="{background: activeColor}">立即梭哈 {{result.symbol}}</button>
+            <button v-else-if="!result" class="btn" style="background: #333; color: #fff;">等待点击</button>
         </div>
-        
-        <div class="shaking-msg" v-show="isShaking">>>> 正在梭哈数据中 <<<</div>
 
-        <audio id="audio-spin" src="spin.mp3" preload="auto"></audio>
-        <audio id="audio-win" src="win.mp3" preload="auto"></audio>
+        <div class="status-msg">
+            <span v-if="isShaking" class="blink">>>> 正在梭哈... <<<</span>
+            <span v-else style="color: #333; font-size: 12px;">摇动手机或点击圆盘</span>
+        </div>
     </div>
 
     <script>
         const { createApp, ref, onMounted } = Vue;
+        
+        // 在线音效链接（已替换为公共音效库链接）
+        const SPIN_SOUND = "https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3";
+        const WIN_SOUND = "https://assets.mixkit.co/active_storage/sfx/1435/1435-preview.mp3";
+
         createApp({
             setup() {
                 const deg = ref(0);
@@ -68,24 +76,26 @@
                 const result = ref(null);
                 const activeColor = ref('#00FF41');
                 
-                // 币种数据 (已包含20个)
+                const spinAudio = new Audio(SPIN_SOUND);
+                const winAudio = new Audio(WIN_SOUND);
+
                 const COINS = [
-                    { symbol: 'BTC', color: '#F7931A', logo: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png', url: 'https://www.binance.com/zh-CN/trade/BTC_USDT' },
-                    { symbol: 'ETH', color: '#627EEA', logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png', url: 'https://www.binance.com/zh-CN/trade/ETH_USDT' },
-                    { symbol: 'SOL', color: '#14F195', logo: 'https://assets.coingecko.com/coins/images/4128/large/solana.png', url: 'https://www.binance.com/zh-CN/trade/SOL_USDT' },
-                    { symbol: 'PEPE', color: '#379237', logo: 'https://assets.coingecko.com/coins/images/29850/large/pepe-token.png', url: 'https://www.binance.com/zh-CN/trade/PEPE_USDT' },
-                    { symbol: 'DOGE', color: '#C2A633', logo: 'https://assets.coingecko.com/coins/images/5/large/dogecoin.png', url: 'https://www.binance.com/zh-CN/trade/DOGE_USDT' }
-                    // ... 更多币种可在此继续添加
+                    { symbol: 'BTC', color: '#F7931A', tip: '数字黄金', logo: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png', url: 'https://www.binance.com/zh-CN/trade/BTC_USDT' },
+                    { symbol: 'ETH', color: '#627EEA', tip: '智能合约之父', logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png', url: 'https://www.binance.com/zh-CN/trade/ETH_USDT' },
+                    { symbol: 'SOL', color: '#14F195', tip: '速度之王', logo: 'https://assets.coingecko.com/coins/images/4128/large/solana.png', url: 'https://www.binance.com/zh-CN/trade/SOL_USDT' },
+                    { symbol: 'PEPE', color: '#379237', tip: 'Meme 精神支柱', logo: 'https://assets.coingecko.com/coins/images/29850/large/pepe-token.png', url: 'https://www.binance.com/zh-CN/trade/PEPE_USDT' },
+                    { symbol: 'SUI', color: '#6FBCF0', tip: '新生代黑马', logo: 'https://assets.coingecko.com/coins/images/26375/large/sui_asset.png', url: 'https://www.binance.com/zh-CN/trade/SUI_USDT' },
+                    { symbol: 'BNB', color: '#F3BA2F', tip: '平台币龙头', logo: 'https://assets.coingecko.com/coins/images/825/large/binance-coin-logo.png', url: 'https://www.binance.com/zh-CN/trade/BNB_USDT' }
                 ];
 
+                let particles = [];
                 const start = () => {
                     if (isShaking.value) return;
                     isShaking.value = true;
                     
-                    // 播放音效
-                    const spinAudio = document.getElementById('audio-spin');
+                    // 播放旋转音效
                     spinAudio.currentTime = 0;
-                    spinAudio.play().catch(()=>{});
+                    spinAudio.play().catch(e => console.log("音效被拦截:", e));
 
                     deg.value += 1800 + Math.random() * 1000;
                     
@@ -97,25 +107,22 @@
                         if (count++ > 20) {
                             clearInterval(timer);
                             isShaking.value = false;
-                            document.getElementById('audio-win').play().catch(()=>{});
-                            createExplosion(); // 粒子爆炸
+                            winAudio.play();
+                            explode(); // 触发爆炸
                         }
                     }, 80);
                 };
 
-                const goTrade = () => window.location.href = result.value.url;
-
-                // 粒子特效逻辑
-                let particles = [];
-                const createExplosion = () => {
-                    for(let i=0; i<50; i++) {
+                const explode = () => {
+                    for(let i=0; i<80; i++) {
                         particles.push({
-                            x: window.innerWidth/2,
-                            y: window.innerHeight/2,
-                            vx: (Math.random()-0.5)*15,
-                            vy: (Math.random()-0.5)*15,
-                            size: Math.random()*5 + 2,
-                            color: activeColor.value
+                            x: window.innerWidth / 2,
+                            y: window.innerHeight / 2,
+                            vx: (Math.random() - 0.5) * 20,
+                            vy: (Math.random() - 0.5) * 20,
+                            size: Math.random() * 6 + 2,
+                            color: activeColor.value,
+                            life: 1.0
                         });
                     }
                 };
@@ -126,23 +133,28 @@
                     canvas.width = window.innerWidth;
                     canvas.height = window.innerHeight;
 
-                    function animate() {
+                    function frame() {
                         ctx.clearRect(0, 0, canvas.width, canvas.height);
                         particles.forEach((p, i) => {
-                            p.x += p.vx; p.y += p.vy; p.vy += 0.2;
+                            p.x += p.vx; p.y += p.vy; p.vy += 0.3; // 重力
+                            p.life -= 0.015;
+                            ctx.globalAlpha = p.life;
                             ctx.fillStyle = p.color;
                             ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI*2); ctx.fill();
-                            if(p.y > canvas.height) particles.splice(i, 1);
+                            if(p.life <= 0) particles.splice(i, 1);
                         });
-                        requestAnimationFrame(animate);
+                        requestAnimationFrame(frame);
                     }
-                    animate();
-                    
-                    // 摇一摇监听
+                    frame();
+
+                    // 加速度计监听
                     window.addEventListener('devicemotion', (e) => {
-                        if(Math.abs(e.accelerationIncludingGravity.x) > 15) start();
+                        const acc = e.accelerationIncludingGravity;
+                        if(Math.abs(acc.x) > 18 || Math.abs(acc.y) > 18) start();
                     });
                 });
+
+                const goTrade = () => window.location.href = result.value.url;
 
                 return { deg, isShaking, result, activeColor, start, goTrade };
             }
