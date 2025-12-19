@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MOON SHAKER - 币圈摇摇乐</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.js"></script>
+    <style>
+        :root { --neon: #00ffff; --gold: #F7931A; }
+        body { margin: 0; background: #050505; color: white; font-family: -apple-system, sans-serif; height: 100vh; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+        .app-container { text-align: center; width: 100%; padding: 20px; }
+        
+        /* 轮盘转动动画 */
+        .wheel-box { 
+            width: 280px; height: 280px; margin: 0 auto; border-radius: 50%; 
+            border: 8px solid #111; position: relative; display: flex; 
+            align-items: center; justify-content: center; background: #111;
+            transition: transform 1.5s cubic-bezier(0.15, 0, 0.15, 1);
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.1);
+        }
+        .inner-content { transition: opacity 0.3s; }
+        .crypto-logo { width: 80px; height: 80px; border-radius: 50%; background: #fff; margin-bottom: 10px; }
+        .symbol { font-size: 48px; font-weight: 900; margin: 0; }
+        
+        /* 按钮和文字 */
+        .btn { 
+            margin-top: 50px; padding: 16px 40px; border-radius: 40px; 
+            font-size: 18px; font-weight: bold; border: none; cursor: pointer;
+            text-decoration: none; display: inline-block; transition: 0.3s;
+        }
+        .hint { margin-top: 30px; color: #444; font-size: 13px; letter-spacing: 1px; }
+        .flashing { animation: flash 1s infinite; }
+        @keyframes flash { 50% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+    <div id="app" class="app-container">
+        <h1 style="letter-spacing: 4px; font-size: 24px; color: #eee;">MOON SHAKER</h1>
+
+        <div class="wheel-box" :style="{ transform: 'rotate(' + rotation + 'deg)', borderColor: activeColor, boxShadow: '0 0 50px ' + activeColor + '44' }">
+            <div class="inner-content" :style="{ opacity: isShaking ? 0.3 : 1 }">
+                <template v-if="result">
+                    <img :src="result.logo" class="crypto-logo">
+                    <p class="symbol" :style="{ color: activeColor }">{{ result.symbol }}</p>
+                    <p style="color: #888; font-size: 14px;">{{ result.tip }}</p>
+                </template>
+                <div v-else style="color: #333; font-size: 20px; font-weight: 900;">点击屏幕开启感应</div>
+            </div>
+        </div>
+
+        <div v-if="result && !isShaking">
+            <a :href="result.tradeUrl" class="btn" :style="{ background: activeColor, color: '#000' }">
+                去交易所买入 {{ result.symbol }}
+            </a>
+        </div>
+
+        <div class="hint" :class="{ flashing: isShaking }">
+            {{ isShaking ? '正在为您计算暴富标的...' : '摇动手机或点击屏幕测试' }}
+        </div>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue;
+        createApp({
+            setup() {
+                const rotation = ref(0);
+                const isShaking = ref(false);
+                const result = ref(null);
+                const activeColor = ref('#333');
+
+                const DATA = [
+                    { symbol: 'BTC', color: '#F7931A', tip: '数字黄金，YYDS', logo: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/BTC_USDT' },
+                    { symbol: 'ETH', color: '#627EEA', tip: '以太坊，公链之王', logo: 'https://assets.coingecko.com/coins/images/279/large/ethereum.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/ETH_USDT' },
+                    { symbol: 'SOL', color: '#14F195', tip: '速度之王，土狗天堂', logo: 'https://assets.coingecko.com/coins/images/4128/large/solana.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/SOL_USDT' },
+                    { symbol: 'PEPE', color: '#379237', tip: 'Meme 精神领袖', logo: 'https://assets.coingecko.com/coins/images/29850/large/pepe-token.png', tradeUrl: 'https://www.binance.com/zh-CN/trade/PEPE_USDT' }
+                ];
+
+                const luckyDraw = () => {
+                    if (isShaking.value) return;
+                    isShaking.value = true;
+                    rotation.value += 1080 + Math.random() * 360; // 旋转至少3圈
+                    
+                    let i = 0;
+                    const interval = setInterval(() => {
+                        result.value = DATA[Math.floor(Math.random() * DATA.length)];
+                        activeColor.value = result.value.color;
+                        i++;
+                        if (i > 15) {
+                            clearInterval(interval);
+                            isShaking.value = false;
+                        }
+                    }, 80);
+                };
+
+                // 核心：处理网页传感器权限
+                const initSensor = () => {
+                    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+                        DeviceMotionEvent.requestPermission().then(permissionState => {
+                            if (permissionState === 'granted') {
+                                window.addEventListener('devicemotion', (e) => {
+                                    const acc = e.accelerationIncludingGravity;
+                                    if (Math.abs(acc.x) > 15 || Math.abs(acc.y) > 15) luckyDraw();
+                                });
+                            }
+                        });
+                    } else {
+                        window.addEventListener('devicemotion', (e) => {
+                            const acc = e.accelerationIncludingGravity;
+                            if (Math.abs(acc.x) > 15 || Math.abs(acc.y) > 15) luckyDraw();
+                        });
+                    }
+                    luckyDraw(); // 第一次点击也触发一次
+                };
+
+                return { rotation, isShaking, result, activeColor, initSensor };
+            }
+        }).mount('#app');
+        
+        // 监听点击开启感应（浏览器要求必须有用户交互才能用传感器）
+        window.onclick = () => { document.querySelector('#app').__vue_app__.config.globalProperties.initSensor; };
+    </script>
+</body>
+</html>
